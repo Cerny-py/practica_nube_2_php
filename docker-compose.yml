@@ -6,13 +6,66 @@ services:
       - "8090:80"
     networks:
       - red-publica
+      - red-privada
     environment:
       DB_HOST: ${GYM_DB_HOST}
       DB_USER: ${GYM_DB_USER}
       DB_PASSWORD: ${GYM_DB_PASSWORD}
       DB_NAME: ${GYM_DB_NAME}
+    volumes:
+      - vol-uploads:/var/www/html/uploads
+      - ./app:var/www/html
     depends_on:
       datos:
         condition: service_healthy
-    health_check:
+    healthcheck:
+      test: ["CMD-SHELL", "php -r 'exit(@file_get_contents(\"http://127.0.0.1:8090/\") === false ? 1 : 0);'"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
 
+  datos:
+    image: mariadb:11.4
+    environment:
+      MARIADB_ROOT_PASSWORD: ${GYM_ROOT_PASS}
+      MARIADB_DATABASE: ${GYM_DB_NAME}
+      MARIADB_USER: ${GYM_DB_USER}
+      MARIADB_PASSWORD: ${GYM_DB_PASSWORD}
+    volumes:
+      - vol-datos:/var/lib/mysql
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - red-privada
+    healthcheck:
+       test: ["CMD-SHELL", "mariadb-admin ping -h localhost -u$$MARIADB_USER -p$$MARIADB_PASSWORD && mariadb -u$$MARIADB_USER -p$$MARIADB_PASSWORD -e 'USE gimnasio_db; SELECT 1;'"]
+       interval: 5s
+       timeout: 5s
+       retries: 10
+       start_period: 10s
+
+  panel:
+    image: adminer:4
+    ports:
+      - "8081:8080"
+    networks:
+      - red-privada
+    depends_on:
+      datos:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:8081/"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+networks:
+  red-publica:
+    driver: bridge
+  red-privada:
+    driver: bridge
+
+volumes:
+  vol-datos:
+  vol-uploads:
