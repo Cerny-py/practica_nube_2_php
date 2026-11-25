@@ -37,7 +37,7 @@ services:
     networks:
       - red-privada
     healthcheck:
-       test: ["CMD-SHELL", "mariadb-admin ping -h localhost -u$$MARIADB_USER -p$$MARIADB_PASSWORD && mariadb -u$$MARIADB_USER -p$$MARIADB_PASSWORD -e 'USE gimnasio_db; SELECT 1;'"]
+       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
        interval: 5s
        timeout: 5s
        retries: 10
