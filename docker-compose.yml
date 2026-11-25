@@ -14,7 +14,6 @@ services:
       DB_NAME: ${GYM_DB_NAME}
     volumes:
       - vol-uploads:/var/www/html/uploads
-      - ./app:var/www/html
     depends_on:
       datos:
         condition: service_healthy
